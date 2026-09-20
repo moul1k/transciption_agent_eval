@@ -1,0 +1,21 @@
+name: eval-ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  deterministic-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q
+      - run: meeting-eval benchmark --provider fixture
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixture-eval-report
+          path: artifacts/runs/*.json
