@@ -133,3 +133,19 @@ def test_adapter_and_cli_roundtrip(tmp_path, bundle):
 def test_adapter_errors_are_recorded(bundle):
     result = run_judge(bundle, [sys.executable, "-c", 'print("not json")'], "bad", "discovery")
     assert not result.judgments and len(result.metadata["errors"]) == 9
+
+
+def test_import_preserves_transcript_without_fabricated_timestamp(tmp_path):
+    transcript = tmp_path / "meeting.txt"
+    transcript.write_text("Speaker 1: Maybe Monday.\nSpeaker 2: Keep Tuesday.", encoding="utf-8")
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text("{}", encoding="utf-8")
+    output = tmp_path / "cases.jsonl"
+    runner = CliRunner()
+    args = ["meta", "import-transcript", str(transcript), str(candidate), str(output)]
+    assert runner.invoke(app, args).exit_code == 0
+    case = json.loads(output.read_text(encoding="utf-8"))
+    assert case["input"]["transcript"] == transcript.read_text(encoding="utf-8")
+    assert case["input"]["meeting_at"] is None and case["input"]["timezone"] is None
+    assert case["split"] == "discovery"
+    assert runner.invoke(app, args).exit_code != 0

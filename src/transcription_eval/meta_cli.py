@@ -11,10 +11,51 @@ from .review import export_review
 app = typer.Typer(help="Human-calibrated evaluator experiments. JSON/JSONL in, JSON/HTML out.")
 
 
+@app.command("import-transcript")
+def import_transcript(
+    transcript: Path,
+    candidate: Path,
+    output: Path,
+    case_id: str = "review-001",
+    meeting_id: str = "meeting-001",
+):
+    """Import TXT + candidate MeetingOutput JSON as a discovery case; unknown time stays null."""
+    from .meta import ReviewCase
+    from .schemas import BenchmarkInput, MeetingOutput
+
+    case = ReviewCase(
+        id=case_id,
+        meeting_id=meeting_id,
+        split="discovery",
+        input=BenchmarkInput(transcript=transcript.read_text(encoding="utf-8-sig")),
+        output=MeetingOutput.model_validate_json(candidate.read_text(encoding="utf-8")),
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8") as handle:
+        handle.write(case.model_dump_json() + "\n")
+    typer.echo(f"Imported {len(case.input.transcript)} characters to {output}")
+
+
 @app.command("judge")
-def judge(cases: Path, rubric: Path, config: Path, output: Path, split: str = "test"):
+def judge(
+    cases: Path,
+    rubric: Path,
+    config: Path,
+    output: Path,
+    split: str = "test",
+    credentials: Path | None = None,
+    langfuse: bool = False,
+):
     """Run an adapter configured as {evaluator_id, command: [executable, args], timeout}."""
+    import os
+
     from .judges import run_judge
+    from .tracing import client, load_credentials
+
+    load_credentials(credentials)
+    if langfuse:
+        client()
+        os.environ["MEETING_TRACE"] = "1"
 
     if output.exists():
         raise typer.BadParameter("output exists; choose a new path")

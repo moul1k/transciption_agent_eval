@@ -29,13 +29,16 @@ class FixtureProvider:
 class OpenAIProvider:
     name = "openai"
 
-    def __init__(self, model: str, prompt_path: Path | None = None) -> None:
+    def __init__(self, model: str, prompt_path: Path | None = None, tracing: bool = False) -> None:
         try:
-            from openai import OpenAI
+            if tracing:
+                from langfuse.openai import OpenAI
+            else:
+                from openai import OpenAI
         except ImportError as exc:
             raise RuntimeError('Install the OpenAI extra: pip install -e ".[openai]"') from exc
         self.model = model
-        self.client = OpenAI()
+        self.client = OpenAI(timeout=120, max_retries=0)
         self.prompt = (prompt_path or ROOT / "prompts" / "agent_v1.txt").read_text(encoding="utf-8")
 
     def generate(self, meeting: BenchmarkInput, *, expected: MeetingOutput | None = None) -> MeetingOutput:

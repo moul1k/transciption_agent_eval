@@ -61,6 +61,31 @@ git SHA, prompt version, model, latency, per-case failures, and aggregate scores
 
 ## Langfuse tracing
 
+Real transcript extraction now supports traced OpenAI calls and a linked human-review
+packet. Credentials are loaded at runtime from environment variables or an explicitly
+selected credentials text file; they are never copied into artifacts.
+
+```powershell
+# Set OPENAI_API_KEY in your environment, or include it in your local credentials file.
+meeting-eval extract path/to/transcript.txt artifacts/live-run --langfuse --credentials path/to/keys.txt
+```
+
+Use a new output directory for each run. The result includes `candidate.json`,
+`cases.jsonl`, `review.html`, and `run.json` containing the Langfuse trace URL and
+prompt hash. Tracing uploads the input and output to your configured Langfuse project.
+Unknown meeting dates and timezones remain null. The default extraction model is
+`gpt-4.1-mini`; override it with `--model`.
+
+The bundled OpenAI judge can also trace each criterion evaluation:
+
+```powershell
+meeting-eval meta judge artifacts/live-run/cases.jsonl data/meta/rubric.json data/meta/openai_judge.json artifacts/live-run/judge.json --split discovery --langfuse --credentials path/to/keys.txt
+```
+
+Langfuse captures generations (prompt, response, model, usage) nested within extraction
+or evaluator observations. Explicit flushing delivers queued observations before exit.
+Human annotations stay in the local review workflow; they are not uploaded automatically.
+
 Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_BASE_URL`, then add
 `--langfuse`. Each benchmark item becomes a trace and deterministic scores are
 attached to the experiment.

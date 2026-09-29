@@ -50,8 +50,8 @@ class MeetingOutput(StrictModel):
 
 class BenchmarkInput(StrictModel):
     transcript: str
-    meeting_at: datetime
-    timezone: str
+    meeting_at: datetime | None = None
+    timezone: str | None = None
 
 
 class BenchmarkCase(StrictModel):

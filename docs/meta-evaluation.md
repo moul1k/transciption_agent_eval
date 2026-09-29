@@ -6,6 +6,20 @@ The new `meta` commands never infer human labels from expected agent outputs.
 
 ## Start a review
 
+To review your own transcript, first obtain a candidate `MeetingOutput` JSON from
+an agent or save an explicitly labeled assistant draft. Import without inventing
+the meeting's absolute timestamp or timezone:
+
+```powershell
+meeting-eval meta import-transcript path/to/transcript.txt path/to/candidate.json artifacts/my-meeting/cases.jsonl
+meeting-eval meta prepare artifacts/my-meeting/cases.jsonl data/meta/rubric.json artifacts/my-meeting/review.json
+```
+
+This import is not an agent execution: it validates your supplied candidate and
+preserves the entire transcript. Record candidate provenance separately. Unknown
+`meeting_at` and `timezone` are null; relative dates should remain unresolved until
+the needed context is available. Use ignored `artifacts/` for private meeting data.
+
 From the repository root after `pip install -e ".[dev]"`:
 
 ```powershell
