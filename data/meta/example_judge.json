@@ -1,0 +1,1 @@
+{"evaluator_id":"protocol-smoke-test","command":["python","scripts/example_judge.py"],"timeout":30}

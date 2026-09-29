@@ -41,6 +41,7 @@ def run_local(cases: list[BenchmarkCase], provider: Provider, model: str, output
         for score in row["scores"]:
             values.setdefault(str(score["name"]), []).append(float(score["value"]))
     report = {
+        "metric_limitations": "Legacy ID matching only; averages exclude provider errors. See error_count. Not semantic quality.",
         "run": {"created_at": datetime.now(UTC).isoformat(), "git_sha": _git_sha(),
                 "provider": provider.name, "model": model, "prompt_version": "agent_v1",
                 "case_count": len(cases), "error_count": sum(row["error"] is not None for row in rows)},

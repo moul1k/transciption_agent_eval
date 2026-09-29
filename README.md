@@ -4,6 +4,23 @@ An eval-first test bed for an agent that turns meeting transcripts into action i
 calendar events, decisions, and follow-ups. The agent is intentionally small; the
 benchmarking loop is the product.
 
+## Evaluate the evaluators
+
+The primary workflow now supports independent human annotation and evaluator
+comparison. See [the complete protocol and I/O guide](docs/meta-evaluation.md).
+
+```bash
+meeting-eval meta prepare data/meta/cases.jsonl data/meta/rubric.json artifacts/pilot/review.json
+meeting-eval meta schema artifacts/pilot/submission-schema.json
+```
+
+Open the generated `review.html`, collect independent reviewer exports, run a judge
+adapter, and compare judgments against human consensus or explicit adjudication.
+The example judge is a protocol smoke test that abstains; no real human labels are
+bundled. The legacy benchmark below uses exact IDs, not semantic matching, and its
+"no_hallucinations" score is only an ID-set check. Do not interpret it as validated
+agent quality. Its known defects are baseline counterexamples for meta-evaluation.
+
 The design follows [Hamel Husain's eval workflow](https://hamel.dev/blog/posts/evals/):
 split behavior into scoped scenarios, run cheap assertions on every change, inspect
 traces, and only then add human/LLM judges.

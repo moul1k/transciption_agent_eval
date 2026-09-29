@@ -6,9 +6,11 @@ from pathlib import Path
 import typer
 
 from .agent import FixtureProvider, OpenAIProvider, load_cases
+from .meta_cli import app as meta_app
 from .runner import run_local
 
 app = typer.Typer(no_args_is_help=True)
+app.add_typer(meta_app, name='meta')
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATASET = ROOT / "data" / "benchmark.jsonl"
 
@@ -40,10 +42,13 @@ def benchmark(
         typer.echo(run_experiment(cases, selected, run_name).format())
         return
     path, report = run_local(cases, selected, model, output_dir)
+    typer.echo('Legacy ID-matching baseline: these scores do not establish semantic correctness.')
     typer.echo(f"report: {path}")
     typer.echo(f"errors: {report['run']['error_count']}")
     for metric, value in sorted(report["aggregate"].items()):
         typer.echo(f"{metric}: {value:.4f}")
+    if report['run']['error_count']:
+        raise typer.Exit(1)
 
 
 @app.command("seed-langfuse")

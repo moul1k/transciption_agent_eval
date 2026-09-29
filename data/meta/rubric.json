@@ -1,0 +1,24 @@
+{
+  "id": "meeting-operational-quality",
+  "version": "0.1.0-pilot",
+  "criteria": [
+    {
+      "id": "grounded_action",
+      "question": "Is every extracted task supported by the meeting?",
+      "pass_condition": "Tasks preserve the meaning of requests or commitments. Different wording and IDs are acceptable. No tasks is a pass for this criterion only.",
+      "fail_condition": "At least one task is invented, contradicted, or materially changes the requested work."
+    },
+    {
+      "id": "preserve_uncertainty",
+      "question": "Are owners and dates no more precise than the evidence permits?",
+      "pass_condition": "Missing owners/times remain unknown. Explicit facts are preserved. A date alone does not imply an exact time unless an explicit policy supplies it.",
+      "fail_condition": "The output invents an owner or exact deadline, or treats a tentative proposal as confirmed."
+    },
+    {
+      "id": "coverage",
+      "question": "Does the output capture the meeting's explicit operational commitments?",
+      "pass_condition": "All explicit tasks are represented without requiring exact reference wording. No explicit commitments means no tasks is acceptable.",
+      "fail_condition": "At least one explicit commitment is missing or loses essential meaning."
+    }
+  ]
+}
