@@ -31,6 +31,8 @@ class Rubric(StrictModel):
 
     @model_validator(mode="after")
     def unique(self):
+        if any(c.id == "all" for c in self.criteria):
+            raise ValueError("criterion ID all is reserved for aggregate metrics")
         if len({c.id for c in self.criteria}) != len(self.criteria):
             raise ValueError("duplicate criterion IDs")
         return self
@@ -93,11 +95,16 @@ def load_bundle(cases_path: Path, rubric_path: Path) -> dict:
     if not cases or len({c.id for c in cases}) != len(cases):
         raise ValueError("dataset must be nonempty with unique case IDs")
     meetings = {}
+    input_splits = {}
     for case in cases:
         signature = (case.split, case.input.model_dump_json())
         if case.meeting_id in meetings and meetings[case.meeting_id] != signature:
             raise ValueError("meeting variants must share a split and input")
         meetings[case.meeting_id] = signature
+        input_hash = digest(case.input.model_dump(mode="json"))
+        if input_hash in input_splits and input_splits[input_hash] != case.split:
+            raise ValueError("identical meeting input cannot cross splits under different IDs")
+        input_splits[input_hash] = case.split
     rubric = Rubric.model_validate_json(rubric_path.read_text(encoding="utf-8"))
     case_data = [c.model_dump(mode="json") for c in cases]
     rubric_data = rubric.model_dump(mode="json")
@@ -204,6 +211,71 @@ def compare(bundle: dict, submissions: list[Submission], split: str = "test") ->
             for other in votes[i + 1 :]:
                 pair_total += 1
                 pair_agree += vote == other
+    review_queue = []
+    for key in keys:
+        reasons = []
+        reference = references.get(key)
+        if reference is None:
+            reasons.append("unresolved_reference")
+        judge_rows = []
+        for evaluator, predictions in judges.items():
+            predicted = predictions.get(key)
+            if predicted is None:
+                reasons.append("missing_prediction")
+            elif predicted not in ("pass", "fail"):
+                reasons.append("judge_abstained")
+            elif reference is not None and predicted != reference:
+                reasons.append("false_acceptance" if reference == "fail" else "false_rejection")
+            judge_rows.append({"evaluator_id": evaluator, "verdict": predicted})
+        if reasons:
+            annotations = []
+            for submission in submissions:
+                for judgment in submission.judgments:
+                    if (judgment.case_id, judgment.criterion_id) == key:
+                        annotations.append(
+                            {
+                                "evaluator_id": submission.evaluator_id,
+                                "kind": submission.kind,
+                                **judgment.model_dump(),
+                            }
+                        )
+            review_queue.append(
+                {
+                    "case_id": key[0],
+                    "criterion_id": key[1],
+                    "reference": reference,
+                    "reasons": sorted(set(reasons)),
+                    "judges": judge_rows,
+                    "annotations": annotations,
+                }
+            )
+    from .provenance import capture
+
+    critiques, human_completion = [], []
+    selected_ids = {k[0] for k in keys}
+    for submission in submissions:
+        if submission.kind != "human":
+            continue
+        judgments = [j for j in submission.judgments if (j.case_id, j.criterion_id) in keys]
+        human_completion.append(
+            {
+                "evaluator_id": submission.evaluator_id,
+                "submitted_cells": len(judgments),
+                "possible_cells": len(keys),
+                "binary_cells": sum(j.verdict in ("pass", "fail") for j in judgments),
+            }
+        )
+        notes = submission.metadata.get("freeform_critiques", {})
+        if isinstance(notes, dict):
+            for case_id, critique in notes.items():
+                if case_id in selected_ids and isinstance(critique, str) and critique.strip():
+                    critiques.append(
+                        {
+                            "case_id": case_id,
+                            "reviewer": submission.evaluator_id,
+                            "critique": critique,
+                        }
+                    )
     return {
         "schema_version": "1",
         "dataset_hash": bundle["dataset_hash"],
@@ -214,4 +286,9 @@ def compare(bundle: dict, submissions: list[Submission], split: str = "test") ->
         "human_pair_comparisons": pair_total,
         "human_pair_agreement": pair_agree / pair_total if pair_total else None,
         "evaluators": reports,
+        "review_queue": review_queue,
+        "freeform_critiques": critiques,
+        "human_completion": human_completion,
+        "provenance": capture(),
+        "synthetic_demo": any(s.metadata.get("synthetic_demo") for s in submissions),
     }

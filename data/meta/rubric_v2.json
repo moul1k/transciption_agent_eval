@@ -1,0 +1,13 @@
+{
+  "id": "meeting-operational-quality",
+  "version": "0.2.0-proposed",
+  "criteria": [
+    {"id":"grounded_action","question":"Does each extracted task preserve a supported request or commitment?","pass_condition":"All tasks are supported in meaning. IDs and equivalent wording may differ. An empty list passes this grounding check alone.","fail_condition":"Any task is invented, contradicted or materially changes the requested work."},
+    {"id":"preserve_uncertainty","question":"Are assignees and deadlines no more precise than the evidence supports?","pass_condition":"Explicit facts are preserved; missing assignees and times remain unknown unless an explicit policy supplies them.","fail_condition":"An owner, exact deadline or certainty level is invented or contradicted."},
+    {"id":"coverage","question":"Are the meeting's explicit operational commitments represented?","pass_condition":"All explicit commitments are represented with essential meaning, accepting valid grouping or paraphrases.","fail_condition":"An explicit commitment is missing or loses essential scope."},
+    {"id":"calendar_intent","question":"Do calendar entries reflect the final scheduling intent?","pass_condition":"Entries preserve confirmed versus tentative status, cancellations and later corrections. Unknown times stay unknown.","fail_condition":"An entry restores a withdrawn proposal, invents a meeting, or misrepresents the final participants, timing or status."},
+    {"id":"decision_fidelity","question":"Are decisions distinguished from rejected proposals and open questions?","pass_condition":"Accepted decisions preserve their conditions, while unresolved questions remain unresolved.","fail_condition":"A proposal becomes a decision without support, a condition is dropped, or a final decision is reversed."},
+    {"id":"evidence_support","question":"Does cited evidence support the associated claim in context?","pass_condition":"Evidence can be located in the input or trace and supports the claim without ignoring later corrections.","fail_condition":"A quote is fabricated, misattributed or insufficient to support a material part of the claim."},
+    {"id":"execution_truthfulness","question":"Are claims of external execution supported by tool outcomes and final state?","pass_condition":"Descriptions make no execution claim, or observable successful tool outcomes and final state support each claim. No calls are needed for extraction-only tasks.","fail_condition":"The output claims an action was executed despite failure, absence of supporting tools, or contradictory final state."}
+  ]
+}

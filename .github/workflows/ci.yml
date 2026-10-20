@@ -15,7 +15,12 @@ jobs:
       - run: ruff check .
       - run: pytest -q
       - run: meeting-eval benchmark --provider fixture
+      - run: meeting-eval meta demo artifacts/demo-ci
       - uses: actions/upload-artifact@v4
         with:
           name: fixture-eval-report
           path: artifacts/runs/*.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-meta-evaluation-demo
+          path: artifacts/demo-ci/

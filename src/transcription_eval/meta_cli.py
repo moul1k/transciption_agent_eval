@@ -11,6 +11,16 @@ from .review import export_review
 app = typer.Typer(help="Human-calibrated evaluator experiments. JSON/JSONL in, JSON/HTML out.")
 
 
+@app.command("demo")
+def demo(output_dir: Path):
+    """Create an end-to-end synthetic teaching run, without keys or paid calls."""
+    from .demo import run
+
+    root = Path(__file__).resolve().parents[2]
+    run(output_dir, root / "data/meta/cases.jsonl", root / "data/meta/rubric.json")
+    typer.echo(f"SYNTHETIC DEMO (not human research): {output_dir / 'report.html'}")
+
+
 @app.command("import-transcript")
 def import_transcript(
     transcript: Path,
@@ -115,8 +125,92 @@ def report(cases: Path, rubric: Path, submissions: Path, output: Path, split: st
     ]
     if not data:
         raise typer.BadParameter("no submissions found")
-    write_new(output, compare(bundle, data, split))
+    if output.with_suffix(".html").exists() or output.exists():
+        raise typer.BadParameter("report output exists; choose a new path")
+    result = compare(bundle, data, split)
+    write_new(output, result)
+    from .reporting import write_html
+
+    write_html(result, output.with_suffix(".html"))
     typer.echo(str(output))
+
+
+@app.command("challenges")
+def challenges(cases: Path, rubric: Path, output_dir: Path, case_id: str):
+    """Generate blind output variants and a separate proposed challenge manifest."""
+    from .challenges import generate
+
+    bundle, manifest = generate(load_bundle(cases, rubric), case_id)
+    output_dir.mkdir(parents=True, exist_ok=False)
+    with (output_dir / "cases.jsonl").open("x", encoding="utf-8") as handle:
+        for case in bundle["cases"]:
+            handle.write(json.dumps(case) + "\n")
+    write_new(output_dir / "manifest.json", manifest.model_dump(mode="json"))
+    write_new(output_dir / "review.json", bundle)
+    export_review(bundle, output_dir / "review.html")
+    typer.echo(
+        f"{len(bundle['cases'])} cases; {len(manifest.relations)} proposed relations. "
+        "Review before treating expectations as valid."
+    )
+
+
+@app.command("robustness")
+def robustness(cases: Path, rubric: Path, manifest: Path, submission: Path, output: Path):
+    """Analyze invariance and conditional failure detection; no human labels inferred."""
+    from .challenges import ChallengeManifest, analyze
+
+    bundle = load_bundle(cases, rubric)
+    plan = ChallengeManifest.model_validate_json(manifest.read_text(encoding="utf-8"))
+    judge_result = Submission.model_validate_json(submission.read_text(encoding="utf-8"))
+    write_new(output, analyze(bundle, plan, judge_result))
+    typer.echo(str(output))
+
+
+@app.command("repeat-judge")
+def repeat_judge(
+    cases: Path,
+    rubric: Path,
+    config: Path,
+    output_dir: Path,
+    repeats: int = typer.Option(3, min=2, max=10),
+    split: str = "test",
+):
+    """Execute identical trusted adapter config repeatedly; report coverage and stability.
+
+    Real model adapters incur repeats times the usual number of API calls.
+    """
+    from .judges import run_judge
+    from .meta import digest
+    from .stability import analyze_repeats
+
+    bundle = load_bundle(cases, rubric)
+    if not any(c["split"] == split for c in bundle["cases"]):
+        raise typer.BadParameter("no cases in selected split")
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    command = settings.get("command")
+    if not isinstance(command, list) or not command or not all(isinstance(v, str) for v in command):
+        raise typer.BadParameter("command must be a nonempty argv array")
+    output_dir.mkdir(parents=True, exist_ok=False)
+    runs = []
+    for i in range(repeats):
+        result = run_judge(
+            bundle,
+            command,
+            f"{settings['evaluator_id']}:repeat-{i + 1}",
+            split,
+            settings.get("timeout", 60),
+        )
+        result.metadata.update(
+            configuration_hash=digest(settings),
+            judge_family=settings["evaluator_id"],
+            repetition=i + 1,
+        )
+        write_new(output_dir / f"repeat-{i + 1}.json", result.model_dump(mode="json"))
+        runs.append(result)
+        typer.echo(f"Repeat {i + 1}/{repeats}: {len(result.metadata['errors'])} adapter errors")
+    write_new(output_dir / "stability.json", analyze_repeats(bundle, runs, split))
+    if any(r.metadata["errors"] for r in runs):
+        raise typer.Exit(1)
 
 
 @app.command("schema")

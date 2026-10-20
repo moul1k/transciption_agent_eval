@@ -9,6 +9,19 @@ benchmarking loop is the product.
 The primary workflow now supports independent human annotation and evaluator
 comparison. See [the complete protocol and I/O guide](docs/meta-evaluation.md).
 
+For the study design, controlled challenges, repeated runs, and mentor-facing reports,
+see [the benchmarking study protocol](docs/study-protocol.md). Run a complete offline
+demonstration with explicitly synthetic labels:
+
+```bash
+meeting-eval meta demo artifacts/demo-01
+```
+
+Open `artifacts/demo-01/report.html`. The demo demonstrates an always-pass judge that
+is invariant to ID changes but misses injected errors. It is not a human-validated
+model benchmark. Real comparison runs now also export HTML reports with a review
+queue, human critiques and annotation completion.
+
 ```bash
 meeting-eval meta prepare data/meta/cases.jsonl data/meta/rubric.json artifacts/pilot/review.json
 meeting-eval meta schema artifacts/pilot/submission-schema.json
