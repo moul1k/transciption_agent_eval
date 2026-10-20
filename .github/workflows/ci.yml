@@ -17,6 +17,7 @@ jobs:
       - run: meeting-eval benchmark --provider fixture
       - run: meeting-eval meta demo artifacts/demo-ci
       - run: meeting-eval meta contract-suite artifacts/contracts-ci
+      - run: meeting-eval meta contract-suite artifacts/edge-ci --suite edge
       - uses: actions/upload-artifact@v4
         with:
           name: fixture-eval-report
@@ -30,4 +31,5 @@ jobs:
           name: authored-contracts-and-unit-tests
           path: |
             artifacts/contracts-ci/
+            artifacts/edge-ci/
             artifacts/unit-tests.xml

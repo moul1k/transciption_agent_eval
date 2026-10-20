@@ -36,8 +36,15 @@ def contract_verdict():
 
 
 @task
-def evaluator_contracts():
-    bundle, contracts = build_suite()
+def evaluator_contracts(suite: str = "developer"):
+    if suite == "edge":
+        from transcription_eval.edge_cases import build_edge_suite
+
+        bundle, contracts = build_edge_suite()
+    elif suite == "developer":
+        bundle, contracts = build_suite()
+    else:
+        raise ValueError("suite must be developer or edge")
     cases = {c["id"]: c for c in bundle["cases"]}
     criteria = {c["id"]: scoped_criterion(c) for c in bundle["rubric"]["criteria"]}
     samples = []

@@ -33,6 +33,14 @@ candidate prompt injection. See [the developer design and research mapping](docs
 for the Inspect AI adapter, JUnit export, regression gate and manually triggered
 paid GitHub Action. Ordinary CI remains API-free.
 
+The [niche edge suite](docs/edge-suite.md) adds 36 paired candidates for corrections,
+ambiguous ownership/dates, DST, misleading evidence, conditional decisions, and
+tool outcome counterexamples. Export it with
+`meeting-eval meta contract-suite artifacts/edge-cases --suite edge`.
+The [measured edge-suite results](docs/results/edge-audit-2026-10-20.md) include a
+reproducible UTC date-rollover false acceptance despite perfect repeated verdict
+agreement: 72 live judgments, 70 contract matches, estimated cost under one cent.
+
 ```bash
 meeting-eval meta prepare data/meta/cases.jsonl data/meta/rubric.json artifacts/pilot/review.json
 meeting-eval meta schema artifacts/pilot/submission-schema.json

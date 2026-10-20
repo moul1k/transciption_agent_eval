@@ -12,11 +12,18 @@ app = typer.Typer(help="Human-calibrated evaluator experiments. JSON/JSONL in, J
 
 
 @app.command("contract-suite")
-def contract_suite(output_dir: Path):
+def contract_suite(output_dir: Path, suite: str = "developer"):
     """Export fresh generic agent cases and separate authored specifications for CI/study."""
     from .contracts import build_suite
 
-    bundle, contracts = build_suite()
+    if suite == "edge":
+        from .edge_cases import build_edge_suite
+
+        bundle, contracts = build_edge_suite()
+    elif suite == "developer":
+        bundle, contracts = build_suite()
+    else:
+        raise typer.BadParameter("suite must be developer or edge")
     output_dir.mkdir(parents=True, exist_ok=False)
     write_new(output_dir / "bundle.json", bundle)
     write_new(output_dir / "rubric.json", bundle["rubric"])

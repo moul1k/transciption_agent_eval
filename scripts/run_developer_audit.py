@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--langfuse-credentials", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--budget-usd", type=float, default=0.5)
+    parser.add_argument("--suite", choices=("developer", "edge"), default="developer")
     args = parser.parse_args()
     load_credentials(args.credentials)
     load_credentials(args.langfuse_credentials)
@@ -39,7 +40,12 @@ def main():
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(value, indent=2), encoding="utf-8")
 
-    bundle, contracts = build_suite()
+    if args.suite == "edge":
+        from transcription_eval.edge_cases import build_edge_suite
+
+        bundle, contracts = build_edge_suite()
+    else:
+        bundle, contracts = build_suite()
     write("bundle.json", bundle)
     write("contracts.json", [c.model_dump() for c in contracts])
     export_review(bundle, folder / "human-review.html")
@@ -48,7 +54,12 @@ def main():
     )
     write("rubric.json", bundle["rubric"])
     jobs = []
-    for condition in ("scope_legacy", "scope_scoped", "tool_full", "tool_output_only", "injection"):
+    conditions = (
+        ("edge",)
+        if args.suite == "edge"
+        else ("scope_legacy", "scope_scoped", "tool_full", "tool_output_only", "injection")
+    )
+    for condition in conditions:
         configured = deepcopy(bundle)
         if condition == "scope_scoped":
             configured["rubric"]["criteria"] = [
@@ -67,7 +78,8 @@ def main():
         chosen = [
             c
             for c in contracts
-            if (condition.startswith("scope") and c.category.startswith("scope"))
+            if condition == "edge"
+            or (condition.startswith("scope") and c.category.startswith("scope"))
             or (condition.startswith("tool") and c.category.startswith("tool"))
             or (condition == "injection" and c.category.startswith("injection"))
         ]
@@ -137,7 +149,9 @@ def main():
                     raise RuntimeError("stopped by cost or provider guard")
                 reserved += estimate
             with lf.start_as_current_observation(
-                name="developer-evaluator-audit",
+                name="edge-evaluator-audit"
+                if args.suite == "edge"
+                else "developer-evaluator-audit",
                 as_type="evaluator",
                 input=payload,
                 metadata={
