@@ -13,9 +13,10 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
       - run: ruff check .
-      - run: pytest -q
+      - run: pytest -q --junitxml=artifacts/unit-tests.xml
       - run: meeting-eval benchmark --provider fixture
       - run: meeting-eval meta demo artifacts/demo-ci
+      - run: meeting-eval meta contract-suite artifacts/contracts-ci
       - uses: actions/upload-artifact@v4
         with:
           name: fixture-eval-report
@@ -24,3 +25,9 @@ jobs:
         with:
           name: synthetic-meta-evaluation-demo
           path: artifacts/demo-ci/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: authored-contracts-and-unit-tests
+          path: |
+            artifacts/contracts-ci/
+            artifacts/unit-tests.xml

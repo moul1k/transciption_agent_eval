@@ -11,6 +11,53 @@ from .review import export_review
 app = typer.Typer(help="Human-calibrated evaluator experiments. JSON/JSONL in, JSON/HTML out.")
 
 
+@app.command("contract-suite")
+def contract_suite(output_dir: Path):
+    """Export fresh generic agent cases and separate authored specifications for CI/study."""
+    from .contracts import build_suite
+
+    bundle, contracts = build_suite()
+    output_dir.mkdir(parents=True, exist_ok=False)
+    write_new(output_dir / "bundle.json", bundle)
+    write_new(output_dir / "rubric.json", bundle["rubric"])
+    write_new(
+        output_dir / "contracts.json",
+        {
+            "reference_type": "authored_not_human_consensus",
+            "contracts": [c.model_dump() for c in contracts],
+        },
+    )
+    with (output_dir / "cases.jsonl").open("x", encoding="utf-8") as handle:
+        for case in bundle["cases"]:
+            handle.write(json.dumps(case) + "\n")
+    export_review(bundle, output_dir / "review.html")
+    typer.echo(f"{len(bundle['cases'])} cases exported. Authored contracts are not human labels.")
+
+
+@app.command("gate")
+def regression_gate(
+    report: Path,
+    minimum_match: float = typer.Option(0.95, min=0, max=1),
+    maximum_false_acceptances: int = typer.Option(0, min=0),
+    condition: list[str] | None = typer.Option(None, "--condition"),
+):
+    """Apply explicit point thresholds to an authored-contract audit report; nonzero on failure."""
+    from .audit import gate
+
+    data = json.loads(report.read_text(encoding="utf-8"))
+    if condition:
+        unknown = set(condition) - set(data["groups"])
+        if unknown:
+            raise typer.BadParameter(f"Unknown conditions: {sorted(unknown)}")
+        data = dict(data, groups={k: v for k, v in data["groups"].items() if k in condition})
+    failures = gate(data, minimum_match, maximum_false_acceptances)
+    for failure in failures:
+        typer.echo(failure)
+    if failures:
+        raise typer.Exit(1)
+    typer.echo("Contract regression thresholds passed; human validity is not established.")
+
+
 @app.command("demo")
 def demo(output_dir: Path):
     """Create an end-to-end synthetic teaching run, without keys or paid calls."""

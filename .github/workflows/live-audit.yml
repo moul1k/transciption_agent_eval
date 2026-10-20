@@ -1,0 +1,33 @@
+name: manual-live-evaluator-audit
+on:
+  workflow_dispatch:
+    inputs:
+      budget_usd:
+        description: Conservative maximum request reservation in USD
+        type: choice
+        options: ['0.25', '0.50']
+        default: '0.50'
+jobs:
+  live-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+      AUDIT_BUDGET: ${{ inputs.budget_usd }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e '.[openai,langfuse]'
+      - run: python scripts/run_developer_audit.py --output-dir artifacts/live-audit --budget-usd "$AUDIT_BUDGET"
+      - run: python scripts/summarize_developer_audit.py artifacts/live-audit
+      - run: meeting-eval meta gate artifacts/live-audit/report.json --condition scope_scoped --condition tool_full --condition tool_output_only --condition injection --minimum-match 0.95 --maximum-false-acceptances 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-evaluator-audit
+          path: artifacts/live-audit/

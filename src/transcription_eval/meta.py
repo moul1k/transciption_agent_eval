@@ -89,7 +89,13 @@ def load_bundle(cases_path: Path, rubric_path: Path) -> dict:
     for number, line in enumerate(cases_path.read_text(encoding="utf-8").splitlines(), 1):
         if line.strip():
             try:
-                cases.append(ReviewCase.model_validate_json(line))
+                raw = json.loads(line)
+                if raw.get("artifact_type") == "generic":
+                    from .contracts import ArtifactCase
+
+                    cases.append(ArtifactCase.model_validate(raw))
+                else:
+                    cases.append(ReviewCase.model_validate(raw))
             except ValueError as exc:
                 raise ValueError(f"{cases_path}:{number}: {exc}") from exc
     if not cases or len({c.id for c in cases}) != len(cases):

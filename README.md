@@ -27,6 +27,12 @@ An actual low-cost GPT-6 Luna discovery pilot has also been executed:
 It includes real transcript extraction, controlled challenges, repeated judgments,
 and a post-hoc rubric scope ablation, with all traces verified in Langfuse.
 
+The follow-up [developer evaluator audit](docs/results/developer-audit-2026-10-20.md)
+adds 120 real judgments for fresh scope-transfer cases, tool-evidence ablation and
+candidate prompt injection. See [the developer design and research mapping](docs/developer-evaluation-design.md)
+for the Inspect AI adapter, JUnit export, regression gate and manually triggered
+paid GitHub Action. Ordinary CI remains API-free.
+
 ```bash
 meeting-eval meta prepare data/meta/cases.jsonl data/meta/rubric.json artifacts/pilot/review.json
 meeting-eval meta schema artifacts/pilot/submission-schema.json
