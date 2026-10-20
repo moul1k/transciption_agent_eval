@@ -1,0 +1,12 @@
+{
+  "id": "meeting-operational-quality",
+  "version": "0.1.1-discovery-scope-ablation",
+  "criteria": [
+    {
+      "id": "preserve_uncertainty",
+      "question": "Does the output assert an owner or deadline more precise than the source supports?",
+      "pass_condition": "Judge only owner and deadline assertions actually present in the output. Pass if every asserted owner or deadline is supported, and unknown values stay unknown. An empty output passes this criterion. Omitted tasks are coverage errors; unsupported task meanings are grounding errors. Those errors alone must not fail this criterion.",
+      "fail_condition": "Fail only if an asserted owner or deadline is invented, contradicted, or more precise than the available evidence. Do not fail for missing tasks or an incorrect task description when the owner and deadline assertions themselves are supported."
+    }
+  ]
+}

@@ -22,6 +22,11 @@ is invariant to ID changes but misses injected errors. It is not a human-validat
 model benchmark. Real comparison runs now also export HTML reports with a review
 queue, human critiques and annotation completion.
 
+An actual low-cost GPT-6 Luna discovery pilot has also been executed:
+[October 20 results and limitations](docs/results/luna-pilot-2026-10-20.md).
+It includes real transcript extraction, controlled challenges, repeated judgments,
+and a post-hoc rubric scope ablation, with all traces verified in Langfuse.
+
 ```bash
 meeting-eval meta prepare data/meta/cases.jsonl data/meta/rubric.json artifacts/pilot/review.json
 meeting-eval meta schema artifacts/pilot/submission-schema.json

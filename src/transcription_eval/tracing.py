@@ -3,6 +3,8 @@
 import os
 import re
 from pathlib import Path
+from xml.etree import ElementTree
+from zipfile import ZipFile
 
 
 def load_credentials(path: Path | None = None):
@@ -17,7 +19,14 @@ def load_credentials(path: Path | None = None):
     )
     if path is None:
         return
-    content = path.read_text(encoding="utf-8-sig")
+    if path.suffix.lower() == ".docx":
+        with ZipFile(path) as archive:
+            root = ElementTree.fromstring(archive.read("word/document.xml"))
+        namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+        # Preserve run joins while separating paragraphs; never execute document text.
+        content = "\n".join("".join(p.itertext()) for p in root.iter(namespace + "p"))
+    else:
+        content = path.read_text(encoding="utf-8-sig")
     patterns = {
         "LANGFUSE_PUBLIC_KEY": r"\bpk-lf-[A-Za-z0-9_-]+",
         "LANGFUSE_SECRET_KEY": r"\bsk-lf-[A-Za-z0-9_-]+",
